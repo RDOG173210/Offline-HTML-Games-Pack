@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>HTML Games</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #0b0d12;
+      --card: #151922;
+      --card-hover: #1d2330;
+      --border: #2a3140;
+      --text: #f5f7fb;
+      --muted: #9ca6b5;
+      --accent: #6ea8ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--background);
+      color: var(--text);
+      font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: auto;
+      padding: 45px 0 70px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 7vw, 4rem);
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+
+    .search-container {
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+
+      display: flex;
+      gap: 10px;
+
+      margin-bottom: 25px;
+    }
+
+    #search {
+      flex: 1;
+
+      padding: 15px 18px;
+
+      border-radius: 14px;
+      border: 1px solid var(--border);
+
+      background: var(--card);
+      color: var(--text);
+
+      font-size: 16px;
+
+      outline: none;
+    }
+
+    #search:focus {
+      border-color: var(--accent);
+    }
+
+    #counter {
+      min-width: 90px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 14px;
+      border: 1px solid var(--border);
+
+      background: var(--card);
+
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    #games {
+      display: grid;
+
+      grid-template-columns:
+        repeat(auto-fill, minmax(230px, 1fr));
+
+      gap: 12px;
+    }
+
+    .game {
+      display: block;
+
+      padding: 17px;
+
+      min-height: 78px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      text-decoration: none;
+      color: var(--text);
+
+      transition:
+        transform 0.12s ease,
+        background 0.12s ease,
+        border-color 0.12s ease;
+    }
+
+    .game:hover {
+      transform: translateY(-2px);
+
+      background: var(--card-hover);
+
+      border-color: var(--accent);
+    }
+
+    .game-name {
+      font-weight: 650;
+      line-height: 1.35;
+
+      overflow-wrap: anywhere;
+    }
+
+    .filename {
+      margin-top: 7px;
+
+      color: var(--muted);
+
+      font-size: 12px;
+
+      overflow-wrap: anywhere;
+    }
+
+    #message {
+      text-align: center;
+
+      color: var(--muted);
+
+      padding: 40px 10px;
+    }
+
+    .error {
+      max-width: 700px;
+
+      margin: 30px auto;
+      padding: 20px;
+
+      background: var(--card);
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding-top: 28px;
+      }
+
+      #games {
+        grid-template-columns: 1fr;
+      }
+
+      #counter {
+        min-width: 75px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>🎮 HTML Games</h1>
+
+    <p class="subtitle">
+      Pick a game and start playing
+    </p>
+  </header>
+
+
+  <div class="search-container">
+
+    <input
+      id="search"
+      type="search"
+      placeholder="🔎 Search games..."
+      autocomplete="off"
+    >
+
+    <div id="counter">
+      Loading...
+    </div>
+
+  </div>
+
+
+  <div id="message">
+    Loading games...
+  </div>
+
+
+  <div id="games"></div>
+
+</div>
+
+
+<script>
+
+  /*
+    GitHub repository information
+  */
+
+  const GITHUB_USER = "RDOG173210";
+
+  const GITHUB_REPO = "Offline-HTML-Games-Pack";
+
+  const GITHUB_BRANCH = "master";
+
+  const GAME_FOLDER = "offline";
+
+
+  /*
+    Page elements
+  */
+
+  const searchBox =
+    document.getElementById("search");
+
+  const gamesContainer =
+    document.getElementById("games");
+
+  const counter =
+    document.getElementById("counter");
+
+  const message =
+    document.getElementById("message");
+
+
+  /*
+    Convert filename into a nicer display name
+  */
+
+  function cleanName(filename) {
+
+    let name = filename;
+
+    // Remove .html / .htm
+    name = name.replace(/\.(html?|HTML?)$/i, "");
+
+    // Replace underscores and hyphens
+    name = name.replace(/[_-]+/g, " ");
+
+    // Replace repeated spaces
+    name = name.replace(/\s+/g, " ");
+
+    // Trim
+    name = name.trim();
+
+    // Capitalize first letter of each word
+    name = name.replace(/\b\w/g, letter =>
+      letter.toUpperCase()
+    );
+
+    return name;
+  }
+
+
+  /*
+    Create the game cards
+  */
+
+  function displayGames() {
+
+    const search =
+      searchBox.value
+        .trim()
+        .toLowerCase();
+
+
+    const filteredGames =
+      games.filter(game => {
+
+        return (
+          game.name
+            .toLowerCase()
+            .includes(search)
+          ||
+          game.file
+            .toLowerCase()
+            .includes(search)
+        );
+
+      });
+
+
+    /*
+      Update counter
+    */
+
+    counter.textContent =
+      `${filteredGames.length} / ${games.length}`;
+
+
+    /*
+      Clear previous results
+    */
+
+    gamesContainer.innerHTML = "";
+
+
+    /*
+      No results
+    */
+
+    if (filteredGames.length === 0) {
+
+      message.style.display = "block";
+
+      message.textContent =
+        "No games found.";
+
+      return;
+    }
+
+
+    message.style.display = "none";
+
+
+    /*
+      Create cards
+    */
+
+    const fragment =
+      document.createDocumentFragment();
+
+
+    filteredGames.forEach(game => {
+
+      const link =
+        document.createElement("a");
+
+
+      link.className = "game";
+
+
+      /*
+        ./ means the file is in the same
+        Netlify folder as this index.html
+      */
+
+      link.href =
+        "./" +
+        encodeURIComponent(game.file);
+
+
+      const title =
+        document.createElement("div");
+
+      title.className =
+        "game-name";
+
+      title.textContent =
+        game.name;
+
+
+      const filename =
+        document.createElement("div");
+
+      filename.className =
+        "filename";
+
+      filename.textContent =
+        game.file;
+
+
+      link.appendChild(title);
+
+      link.appendChild(filename);
+
+
+      fragment.appendChild(link);
+
+    });
+
+
+    gamesContainer.appendChild(fragment);
+
+  }
+
+
+  /*
+    Load all files from the GitHub
+    offline folder
+  */
+
+  async function loadGames() {
+
+    const apiURL =
+      `https://api.github.com/repos/` +
+      `${GITHUB_USER}/` +
+      `${GITHUB_REPO}/contents/` +
+      `${GAME_FOLDER}?ref=${GITHUB_BRANCH}`;
+
+
+    try {
+
+      const response =
+        await fetch(apiURL);
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          `GitHub returned HTTP ${response.status}`
+        );
+
+      }
+
+
+      const files =
+        await response.json();
+
+
+      /*
+        Only keep HTML files
+      */
+
+      games =
+        files
+          .filter(file => {
+
+            return (
+              file.type === "file" &&
+              /\.(html?|HTML?)$/i.test(
+                file.name
+              )
+            );
+
+          })
+
+
+          /*
+            Turn GitHub file information
+            into our game objects
+          */
+
+          .map(file => {
+
+            return {
+
+              file: file.name,
+
+              name: cleanName(file.name)
+
+            };
+
+          })
+
+
+          /*
+            Alphabetical order
+          */
+
+          .sort((a, b) =>
+            a.name.localeCompare(
+              b.name,
+              undefined,
+              {
+                numeric: true,
+                sensitivity: "base"
+              }
+            )
+          );
+
+
+      /*
+        Make sure games were found
+      */
+
+      if (games.length === 0) {
+
+        throw new Error(
+          "No HTML games were found."
+        );
+
+      }
+
+
+      /*
+        Display them
+      */
+
+      displayGames();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+
+      counter.textContent =
+        "Error";
+
+
+      message.innerHTML = `
+
+        <div class="error">
+
+          <strong>
+            Couldn't load the game list.
+          </strong>
+
+          <br><br>
+
+          ${error.message}
+
+          <br><br>
+
+          Make sure the GitHub repository is
+          public and the games are inside the
+          <code>offline</code> folder.
+
+        </div>
+
+      `;
+
+    }
+
+  }
+
+
+  /*
+    Search games as the user types
+  */
+
+  searchBox.addEventListener(
+    "input",
+    displayGames
+  );
+
+
+  /*
+    Start
+  */
+
+  let games = [];
+
+  loadGames();
+
+</script>
+
+</body>
+</html>
